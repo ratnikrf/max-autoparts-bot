@@ -303,8 +303,9 @@ async def handle_webhook(request):
 async def main():
     # Удаляем старый вебхук
     await bot.delete_webhook()
+    print("🔹 Старый вебхук удалён")
 
-    # Устанавливаем вебхук через прямой API-запрос
+    # Устанавливаем новый вебхук
     WEBHOOK_URL = "https://bot-1777832006-7252-r-r.bothost.tech/webhook"
 
     async with aiohttp.ClientSession() as session:
@@ -316,8 +317,8 @@ async def main():
             "url": WEBHOOK_URL,
             "update_types": ["message_created", "bot_started"]
         }
-        async with session.post("https://botapi.max.ru/subscriptions",
-                                headers=headers,
+        async with session.post("https://botapi.max.ru/subscriptions", 
+                                headers=headers, 
                                 json=payload) as response:
             result = await response.json()
             print(f"📡 Результат установки вебхука: {result}")
