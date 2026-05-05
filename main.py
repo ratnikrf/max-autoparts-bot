@@ -305,7 +305,7 @@ async def main():
     await bot.delete_webhook()
 
     # Устанавливаем вебхук через прямой API-запрос
-    WEBHOOK_URL = "https://bot1777832006.bothost.tech"
+    WEBHOOK_URL = "https://bot-1777832006-7252-r-r.bothost.tech/webhook"
 
     async with aiohttp.ClientSession() as session:
         headers = {
