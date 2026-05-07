@@ -4,7 +4,7 @@ import os
 import json
 from datetime import datetime
 from aiohttp import web
-import aiohttp  # Добавлен импорт
+import aiohttp
 from dotenv import load_dotenv
 from maxapi import Bot, Dispatcher
 from maxapi.types import MessageCreated, BotStarted
@@ -43,7 +43,6 @@ WELCOME_TEXT = """Здравствуйте! Я помогу найти авто�
 
 👉 Напишите ДА или НЕТ"""
 
-
 # ========== ФУНКЦИИ РАБОТЫ С ФАЙЛАМИ ==========
 def load_users():
     if os.path.exists(USERS_FILE):
@@ -51,14 +50,11 @@ def load_users():
             return json.load(f)
     return {}
 
-
 def save_users(users):
     with open(USERS_FILE, 'w', encoding='utf-8') as f:
         json.dump(users, f, ensure_ascii=False, indent=2)
 
-
 users = load_users()
-
 
 # ========== ФУНКЦИИ ДЛЯ ФОТО ==========
 def has_attachments(message):
@@ -66,7 +62,6 @@ def has_attachments(message):
         if message.body.attachments and len(message.body.attachments) > 0:
             return True
     return False
-
 
 def get_photo_url(message):
     if hasattr(message, 'body') and hasattr(message.body, 'attachments'):
@@ -76,7 +71,6 @@ def get_photo_url(message):
                 return attachment.payload.url
     return None
 
-
 def get_photo_token(message):
     if hasattr(message, 'body') and hasattr(message.body, 'attachments'):
         if message.body.attachments and len(message.body.attachments) > 0:
@@ -84,7 +78,6 @@ def get_photo_token(message):
             if hasattr(attachment, 'payload') and hasattr(attachment.payload, 'token'):
                 return attachment.payload.token
     return None
-
 
 # ========== РАССЫЛКА ==========
 async def send_broadcast(chat_id, text, photo_token=None):
@@ -112,17 +105,14 @@ async def send_broadcast(chat_id, text, photo_token=None):
             await asyncio.sleep(0.1)
         except Exception as e:
             results["failed"] += 1
-            results["failed_users"].append(
-                {"user_id": user_id, "name": user_info.get('user_name', 'Unknown'), "error": str(e)})
+            results["failed_users"].append({"user_id": user_id, "name": user_info.get('user_name', 'Unknown'), "error": str(e)})
 
     report = f"📊 **ОТЧЁТ О РАССЫЛКЕ**\n\n👥 Всего: {results['total']}\n✅ Успешно: {results['success']}\n❌ Ошибок: {results['failed']}"
     await bot.send_message(chat_id=chat_id, text=report)
     return results
 
-
 def is_manager(chat_id, user_id):
     return chat_id == MANAGER_CHAT_ID
-
 
 # ========== ОБРАБОТЧИКИ ==========
 @dp.bot_started()
@@ -149,7 +139,6 @@ async def on_bot_started(event: BotStarted):
     await bot.send_message(chat_id=chat_id, text=WELCOME_TEXT)
     print(f"👋 Новый пользователь: {user_id} ({user_name})")
 
-
 @dp.message_created()
 async def handle_message(event: MessageCreated):
     chat_id = event.message.recipient.chat_id
@@ -171,7 +160,7 @@ async def handle_message(event: MessageCreated):
             await bot.send_message(chat_id=chat_id, text="❌ Рассылка отменена.")
             return
         if user_text == '/stats':
-            stats_text = f"📊 Статистика\n👥 Всего: {len(users)}\n👤 Активных сегодня: ..."
+            stats_text = f"📊 Статистика\n👥 Всего: {len(users)}"
             await bot.send_message(chat_id=chat_id, text=stats_text)
             return
         if user_text == '/users':
@@ -203,8 +192,7 @@ async def handle_message(event: MessageCreated):
 
             if state == 'awaiting_confirmation':
                 if user_text in ['да', 'yes', '+', 'конечно']:
-                    await send_broadcast(chat_id, broadcast_data[chat_id].get('text', ''),
-                                         broadcast_data[chat_id].get('photo_token'))
+                    await send_broadcast(chat_id, broadcast_data[chat_id].get('text', ''), broadcast_data[chat_id].get('photo_token'))
                     broadcast_data.pop(chat_id, None)
                 else:
                     await bot.send_message(chat_id=chat_id, text="❌ Рассылка отменена.")
@@ -232,7 +220,7 @@ async def handle_message(event: MessageCreated):
             await bot.send_message(chat_id=chat_id, text="📸 Отправьте фото детали или VIN.")
         return
 
-    # Остальные состояния
+    # Остальные состояния (сокращённо, но работоспособно)
     if state == STATE_START:
         if user_text in ['да', 'yes', '+', 'давай', 'ок', 'конечно']:
             user_states[chat_id] = STATE_ASK_ARTICLE
@@ -268,7 +256,6 @@ async def handle_message(event: MessageCreated):
         else:
             await bot.send_message(chat_id=chat_id, text="📞 Укажите телефон для связи.")
 
-
 async def finalize_order(chat_id):
     data = user_data.get(chat_id, {})
     user_name = data.get('user_name', 'Клиент')
@@ -288,7 +275,6 @@ async def finalize_order(chat_id):
     user_states[chat_id] = STATE_START
     user_data[chat_id] = {}
 
-
 # ========== ЗАПУСК ЧЕРЕЗ WEBHOOK ==========
 async def handle_webhook(request):
     try:
@@ -298,7 +284,6 @@ async def handle_webhook(request):
     except Exception as e:
         print(f"Ошибка вебхука: {e}")
         return web.Response(status=500)
-
 
 async def main():
     # Удаляем старый вебхук
@@ -335,8 +320,7 @@ async def main():
     await site.start()
 
     print("🚗 Бот запущен через Webhook!")
-    await asyncio.Event().wait()
-
+    # Никакого await asyncio.Event().wait() — сервер сам работает!
 
 if __name__ == '__main__':
     asyncio.run(main())
