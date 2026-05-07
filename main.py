@@ -3,7 +3,6 @@ import logging
 import os
 import json
 from datetime import datetime
-from aiohttp import web
 import aiohttp
 from dotenv import load_dotenv
 from maxapi import Bot, Dispatcher
@@ -21,7 +20,7 @@ if not BOT_TOKEN:
 # ========== НАСТРОЙКА БОТА ==========
 logging.basicConfig(level=logging.INFO)
 bot = Bot(BOT_TOKEN)
-dp = Dispatcher(bot)  # ВАЖНО: передаём bot в Dispatcher!
+dp = Dispatcher(bot)
 
 # ========== ХРАНИЛИЩА ==========
 USERS_FILE = "users.json"
@@ -275,17 +274,7 @@ async def finalize_order(chat_id):
     user_states[chat_id] = STATE_START
     user_data[chat_id] = {}
 
-# ========== ЗАПУСК ЧЕРЕЗ WEBHOOK ==========
-async def handle_webhook(request):
-    try:
-        update_data = await request.json()
-        # ВАЖНО: передаём bot обработчику
-        await dp.feed_update(bot, update_data)
-        return web.Response(status=200)
-    except Exception as e:
-        print(f"Ошибка вебхука: {e}")
-        return web.Response(status=500)
-
+# ========== ЗАПУСК ==========
 async def main():
     # Удаляем старый вебхук
     await bot.delete_webhook()
@@ -311,18 +300,8 @@ async def main():
 
     print(f"✅ Webhook установлен на {WEBHOOK_URL}")
 
-    # Запускаем веб-сервер
-    app = web.Application()
-    app.router.add_post("/webhook", handle_webhook)
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8080)
-    await site.start()
-
-    print("🚗 Бот запущен через Webhook!")
-    # Бесконечно ждём (сервер работает)
-    await asyncio.Event().wait()
+    # Запускаем polling (Bothost сам поднимет веб-сервер)
+    await dp.start_polling()
 
 if __name__ == '__main__':
     asyncio.run(main())
