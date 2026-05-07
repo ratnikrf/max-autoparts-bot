@@ -21,7 +21,7 @@ if not BOT_TOKEN:
 # ========== НАСТРОЙКА БОТА ==========
 logging.basicConfig(level=logging.INFO)
 bot = Bot(BOT_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(bot)  # ВАЖНО: передаём bot в Dispatcher!
 
 # ========== ХРАНИЛИЩА ==========
 USERS_FILE = "users.json"
@@ -160,7 +160,7 @@ async def handle_message(event: MessageCreated):
             await bot.send_message(chat_id=chat_id, text="❌ Рассылка отменена.")
             return
         if user_text == '/stats':
-            stats_text = f"📊 Статистика\n👥 Всего: {len(users)}"
+            stats_text = f"📊 Статистика\n👥 Всего пользователей: {len(users)}"
             await bot.send_message(chat_id=chat_id, text=stats_text)
             return
         if user_text == '/users':
@@ -220,7 +220,7 @@ async def handle_message(event: MessageCreated):
             await bot.send_message(chat_id=chat_id, text="📸 Отправьте фото детали или VIN.")
         return
 
-    # Остальные состояния (сокращённо, но работоспособно)
+    # Остальные состояния
     if state == STATE_START:
         if user_text in ['да', 'yes', '+', 'давай', 'ок', 'конечно']:
             user_states[chat_id] = STATE_ASK_ARTICLE
@@ -279,6 +279,7 @@ async def finalize_order(chat_id):
 async def handle_webhook(request):
     try:
         update_data = await request.json()
+        # ВАЖНО: передаём bot обработчику
         await dp.feed_update(bot, update_data)
         return web.Response(status=200)
     except Exception as e:
@@ -320,7 +321,8 @@ async def main():
     await site.start()
 
     print("🚗 Бот запущен через Webhook!")
-    # Никакого await asyncio.Event().wait() — сервер сам работает!
+    # Бесконечно ждём (сервер работает)
+    await asyncio.Event().wait()
 
 if __name__ == '__main__':
     asyncio.run(main())
