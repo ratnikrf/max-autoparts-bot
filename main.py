@@ -275,6 +275,7 @@ async def finalize_order(chat_id):
     user_data[chat_id] = {}
 
 # ========== ЗАПУСК ==========
+# ========== ЗАПУСК ==========
 async def main():
     # Удаляем старый вебхук
     await bot.delete_webhook()
@@ -300,8 +301,8 @@ async def main():
 
     print(f"✅ Webhook установлен на {WEBHOOK_URL}")
 
-    # Запускаем polling (Bothost сам поднимет веб-сервер)
-    await dp.start_polling()
+    # Запускаем polling с передачей bot (ИСПРАВЛЕНО!)
+    await dp.start_polling(bot)
 
 if __name__ == '__main__':
     asyncio.run(main())
