@@ -10,7 +10,6 @@ from maxapi import Bot
 
 load_dotenv()
 
-# ========== ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ ==========
 BOT_TOKEN = os.getenv("MAX_BOT_TOKEN") or os.getenv("BOT_TOKEN")
 MANAGER_CHAT_ID = int(os.getenv("MANAGER_CHAT_ID", 223956964))
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")
@@ -55,7 +54,7 @@ def save_users(users):
 
 users = load_users()
 
-# ========== ФУНКЦИИ ДЛЯ РАССЫЛКИ ==========
+# ========== РАССЫЛКА ==========
 async def send_broadcast(chat_id, text, photo_token=None):
     results = {"total": len(users), "success": 0, "failed": 0, "failed_users": []}
     logger.info(f"📢 НАЧАЛО РАССЫЛКИ, пользователей: {results['total']}")
@@ -268,6 +267,7 @@ async def webhook_handler(request):
             if attachments:
                 first_att = attachments[0]
                 att_type = first_att.get("type")
+                # Некоторые версии MAX могут использовать "photo" вместо "image"
                 if att_type == "image" or att_type == "photo":
                     has_photo = True
                     payload = first_att.get("payload", {})
