@@ -7,7 +7,6 @@ from datetime import datetime
 from aiohttp import web
 from dotenv import load_dotenv
 from maxapi import Bot
-from maxapi.types import MessageCreated, BotStarted
 
 load_dotenv()
 
@@ -17,13 +16,13 @@ MANAGER_CHAT_ID = int(os.getenv("MANAGER_CHAT_ID", 223956964))
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")
 
 if not BOT_TOKEN:
-    raise ValueError("Не задан токен бота (MAX_BOT_TOKEN или BOT_TOKEN)")
+    raise ValueError("Не задан токен бота")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 bot = Bot(BOT_TOKEN)
 
-# ========== ХРАНИЛИЩА (скопированы из вашего старого кода) ==========
+# ========== ХРАНИЛИЩА ==========
 USERS_FILE = "users.json"
 users = {}
 user_states = {}
@@ -56,30 +55,7 @@ def save_users(users):
 
 users = load_users()
 
-# ========== ФУНКЦИИ ДЛЯ ФОТО ==========
-def has_attachments(message):
-    if hasattr(message, 'body') and hasattr(message.body, 'attachments'):
-        if message.body.attachments and len(message.body.attachments) > 0:
-            return True
-    return False
-
-def get_photo_url(message):
-    if hasattr(message, 'body') and hasattr(message.body, 'attachments'):
-        if message.body.attachments and len(message.body.attachments) > 0:
-            attachment = message.body.attachments[0]
-            if hasattr(attachment, 'payload') and hasattr(attachment.payload, 'url'):
-                return attachment.payload.url
-    return None
-
-def get_photo_token(message):
-    if hasattr(message, 'body') and hasattr(message.body, 'attachments'):
-        if message.body.attachments and len(message.body.attachments) > 0:
-            attachment = message.body.attachments[0]
-            if hasattr(attachment, 'payload') and hasattr(attachment.payload, 'token'):
-                return attachment.payload.token
-    return None
-
-# ========== РАССЫЛКА ==========
+# ========== ФУНКЦИИ ДЛЯ РАССЫЛКИ ==========
 async def send_broadcast(chat_id, text, photo_token=None):
     results = {"total": len(users), "success": 0, "failed": 0, "failed_users": []}
     logger.info(f"📢 НАЧАЛО РАССЫЛКИ, пользователей: {results['total']}")
@@ -114,7 +90,7 @@ async def send_broadcast(chat_id, text, photo_token=None):
 def is_manager(chat_id, user_id):
     return chat_id == MANAGER_CHAT_ID
 
-# ========== ОСНОВНАЯ ЛОГИКА (адаптирована для вызова из вебхука) ==========
+# ========== ОСНОВНАЯ ЛОГИКА ==========
 async def on_bot_started(chat_id, user_id, user_name):
     users[str(user_id)] = {
         'user_id': user_id,
@@ -133,6 +109,7 @@ async def on_bot_started(chat_id, user_id, user_name):
     logger.info(f"👋 Новый пользователь: {user_id} ({user_name})")
 
 async def handle_message(chat_id, user_id, user_text, has_photo, photo_url, photo_token):
+    # Обновляем активность
     if str(user_id) in users:
         users[str(user_id)]['last_activity'] = datetime.now().isoformat()
         save_users(users)
@@ -182,7 +159,7 @@ async def handle_message(chat_id, user_id, user_text, has_photo, photo_url, phot
                     broadcast_data.pop(chat_id, None)
                 return
 
-    # Обычная логика
+    # Обычный диалог
     state = user_states.get(chat_id, STATE_START)
 
     if user_text == '/start':
@@ -195,6 +172,7 @@ async def handle_message(chat_id, user_id, user_text, has_photo, photo_url, phot
         if has_photo:
             user_data[chat_id]['has_photo'] = True
             user_data[chat_id]['photo_url'] = photo_url
+            user_data[chat_id]['photo_token'] = photo_token
             user_states[chat_id] = STATE_ASK_PHONE
             await bot.send_message(chat_id=chat_id, text="📸 Фото получено! Укажите ваш телефон.")
         else:
@@ -248,6 +226,8 @@ async def finalize_order(chat_id):
         order_text += f"📞 Телефон: {data['phone']}\n"
     if data.get('has_photo'):
         order_text += f"📸 Фото: отправлено\n"
+        if data.get('photo_url'):
+            order_text += f"🔗 Ссылка: {data['photo_url']}\n"
     order_text += f"\n📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
     await bot.send_message(chat_id=MANAGER_CHAT_ID, text=order_text)
@@ -280,15 +260,19 @@ async def webhook_handler(request):
             chat_id = recipient.get("chat_id")
             user_id = sender.get("user_id")
             text = body.get("text", "")
+
             attachments = body.get("attachments", [])
-            has_photo = any(att.get("type") == "image" for att in attachments)
+            has_photo = False
             photo_url = None
             photo_token = None
-            if has_photo and attachments:
-                first = attachments[0]
-                payload = first.get("payload", {})
-                photo_url = payload.get("url")
-                photo_token = payload.get("token")
+            if attachments:
+                first_att = attachments[0]
+                att_type = first_att.get("type")
+                if att_type == "image" or att_type == "photo":
+                    has_photo = True
+                    payload = first_att.get("payload", {})
+                    photo_url = payload.get("url")
+                    photo_token = payload.get("token")
 
             await handle_message(chat_id, user_id, text, has_photo, photo_url, photo_token)
 
