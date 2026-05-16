@@ -261,6 +261,8 @@ async def webhook_handler(request):
             text = body.get("text", "")
 
             attachments = body.get("attachments", [])
+            logger.info(f"📸 ATTACHMENTS RAW: {json.dumps(attachments, ensure_ascii=False)}")
+            logger.info(f"📸 BODY: {json.dumps(body, ensure_ascii=False)}")
             has_photo = False
             photo_url = None
             photo_token = None
