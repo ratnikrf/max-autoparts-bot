@@ -188,7 +188,12 @@ async def handle_message(chat_id, user_id, user_text, has_photo, photo_url, phot
                 return
 
             if state == 'awaiting_confirmation':
-                if user_text in ['да', 'yes', '+', 'lf', 'конечно', 'да.', 'yes.']:
+                logger.info(f"DEBUG: broadcast state set to awaiting_confirmation for chat {chat_id}, data={broadcast_data.get(chat_id)}")
+                # Очищаем ввод: убираем пробелы, знаки препинания, приводим к нижнему регистру
+                normalized = user_text.strip().lower().rstrip('!?.,')
+                logger.info(f"DEBUG: confirmation input = '{user_text}' -> normalized = '{normalized}'")
+                
+                if normalized in ['да', 'yes', '+', 'lf', 'конечно', 'ага', 'угу', 'д', 'y']:
                     await send_broadcast(chat_id, broadcast_data[chat_id].get('text', ''), broadcast_data[chat_id].get('photo_token'))
                     del broadcast_data[chat_id]
                 else:
